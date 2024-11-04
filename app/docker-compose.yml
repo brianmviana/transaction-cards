@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  localstack:
+    image: localstack/localstack:2.3
+    container_name: localstack
+    ports:
+      - "4566:4566"
+      - "8000:8000"
+    environment:
+      - SERVICES=dynamodb
+      - AWS_DEFAULT_REGION=sa-east-1
+    volumes:
+      - "./ci/localstack/volume:/var/lib/localstack"
+      - "./ci/localstack:/etc/localstack/init/ready.d:ro"
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - "./ci/redis-data:/data"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - AWS_REGION=sa-east-1
+      - DYNAMODB_ENDPOINT=http://localstack:4566
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - localstack
+      - redis
